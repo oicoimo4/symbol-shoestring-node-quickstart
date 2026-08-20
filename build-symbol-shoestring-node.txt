@@ -1,0 +1,110 @@
+build-symbol-shoestring-node.sh 説明書
+=============================================
+
+1. 目的
+-------
+symbol-shoestringを使って、指定したfeaturesのNodeを構築するスクリプトです。
+rootではなく、Node運用ユーザーで実行します。
+
+2. 実行方法
+-----------
+
+  chmod +x build-symbol-shoestring-node.sh
+  ./build-symbol-shoestring-node.sh
+
+3. 生成する構成
+-----------------
+
+  ~/symbolNode/
+  |-- shoestring/
+  |   |-- shoestring.ini
+  |   |-- overrides.ini
+  |   |-- node.key.pem       ※既存鍵指定時
+  |   `-- remotevrf         ※既存鍵指定時
+  |-- ca.key.pem
+  |-- docker-compose.yaml
+  |-- userconfig/
+  |-- keys/
+  `-- data/
+
+Full APIを選択した場合のみ、dbdata/も生成されます。
+
+4. 構築時の入力
+---------------
+
+  - testnetまたはmainnet
+  - Node features（PEER / API / HARVESTER / VOTERの組み合わせ）
+  - APIの種類（Full API／Light API）
+  - APIを有効にした場合のHTTPS有効／無効
+  - 公開IPアドレスまたはドメイン
+  - Friendly Name
+  - beneficiaryAddressを指定するかどうか
+  - Nodeアカウントの準備方法
+
+featuresは `|` 区切りで指定します。既定値は
+`PEER|HARVESTER`です。APIを指定した場合はPeerも自動的に含まれます。
+PEERまたはAPIは必ず1つ以上指定してください。
+PEERのみを指定してLight APIを有効にした場合は、API featureが自動的に
+追加され、`lightApi = true`で構築されます。APIを指定した場合は、
+Full APIまたはLight APIを選択できます。
+
+Nodeアカウントは次から選びます。
+
+  - HARVESTERを指定した場合:
+    1) main / transport / remote / VRFを新規生成
+    2) 4つの既存秘密鍵を指定
+  - HARVESTERを指定しない場合:
+    1) main / transportを新規生成
+    2) main / transportの既存秘密鍵を指定
+
+既存鍵指定時は、入力中の秘密鍵が表示されます。文字数や形式が
+正しくない場合はスクリプトを終了せず、その項目を再入力できます。
+mainとtransportはpemtool --inputでPEMへ変換します。HARVESTERを
+指定した場合はremoteとVRFも入力し、remotevrfへ保存します。
+VOTERを指定した場合の投票鍵はShoestring setupで生成されます。
+すべて64桁の16進数であることを検査し、鍵ファイルは権限600にします。
+
+HARVESTERを指定した場合は、ネットワーク選択後にbeneficiaryAddressを
+指定するか選択します。
+
+  - 指定しない場合: beneficiaryAddressは未設定
+  - 指定する場合: Symbolアドレスを入力
+    - mainnetはNで始まるアドレス
+    - testnetはTで始まるアドレス
+    - ハイフン付きアドレスも入力できます
+
+指定したアドレスは、shoestring/overrides.iniの
+[harvesting.harvesting] セクションへ反映されます。
+
+5. 設定内容
+-----------
+
+  - 指定したfeaturesのNode
+  - HARVESTERを指定した場合: 委任ハーベスト受付有効
+  - HARVESTERを指定した場合: maxUnlockedAccounts = 50
+  - HARVESTERを指定した場合: beneficiaryAddress（指定した場合のみ）
+  - API HTTPSを選択しない場合: apiHttps = false
+  - APIまたはLight APIでHTTPSを選択した場合: apiHttps = true
+  - Light APIを選択した場合: API featureを有効化し、lightApi = true
+  - Full APIを選択した場合: lightApi = false
+
+API HTTPSを有効にする場合は、Nodeを向いた公開ドメインと事前のDNS設定が
+必要です。IPアドレスではなく、example.comのようなドメインを指定します。
+HTTPSを無効にしてREST APIをインターネットへ公開する場合は、別途HTTPSと
+アクセス制御を用意してください。
+
+6. 同時に生成するスクリプト
+-------------------------------
+
+  ~/backup-symbol-shoestring.sh
+  ~/restore-symbol-shoestring.sh
+
+mainnetを選んだ場合のみ、次も生成します。
+
+  ~/sync-symbol-shoestring-snapshot.sh
+
+7. 構築後
+-------
+
+このスクリプトはNodeの設定生成を行います。Nodeの起動と、
+リンクトランザクションの処理は自動では行いません。

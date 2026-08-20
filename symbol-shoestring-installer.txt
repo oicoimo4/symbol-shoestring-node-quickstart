@@ -1,0 +1,70 @@
+symbol-shoestring-installer.sh 説明書
+============================================
+
+1. 目的
+-------
+Symbol Shoestring Nodeの構築に必要な基本環境を準備するインストーラーです。
+
+主に次の処理を行います。
+
+  - Node運用ユーザーの選択または作成
+  - Dockerのインストール
+  - Docker Composeの確認またはインストール
+  - Python仮想環境 ~/env の準備
+  - symbol-shoestringのインストール
+  - Node構築方法の選択
+
+2. 実行方法
+-----------
+
+  chmod +x symbol-shoestring-installer.sh
+  ./symbol-shoestring-installer.sh
+
+管理者権限が必要な場合は、スクリプト自身がsudoで再実行します。
+
+3. インストール後の選択
+-------------------------
+
+  1) Node構築スクリプトを生成して起動
+  2) Shoestring Wizardで手動構築
+  3) Nodeを構築せず終了
+
+1を選ぶと、Node運用ユーザーのホームに次を生成します。
+
+  ~/build-symbol-shoestring-node.sh
+
+その後、このbuildスクリプトをNode運用ユーザーとして実行します。
+build時には、beneficiaryAddressを指定するかどうかを選択できます。
+この選択とアドレス入力の処理は、自動生成されたbuildスクリプトにも
+含まれます。
+また、build時にNode featuresを`PEER`、`API`、`HARVESTER`、`VOTER`から
+組み合わせて指定できます。既定値は`PEER|HARVESTER`です。
+PEERのみの場合はLight APIを有効にできます。その場合はAPI featureも
+自動的に追加されます。APIを指定した場合はFull APIまたはLight APIを
+選択できます。
+Full APIとLight APIのどちらでも、API HTTPSの有効／無効を選択できます。
+HTTPSを有効にする場合は、Nodeを向いた公開ドメインとDNS設定が必要です。
+
+4. 重要な注意
+-------------
+
+  - 既存ユーザーやNode設定を確認なしに削除しません。
+  - インストールだけではNodeは起動しません。
+  - mainnet構築には追加の確認入力があります。
+  - 鍵ファイルのバックアップは別途必ず行ってください。
+  - systemdがない環境ではserviceコマンドでDockerを起動します。
+  - 単体版Docker Composeとsymbol-shoestringは、公開から7日以上経過した
+    直近の安定版を使用します。
+  - 最新版が公開から7日未満の場合は、その直前の条件を満たす版を使用します。
+  - 単体版Docker Composeの取得時は、公式SHA-256ファイルと照合します。
+  - 実際に使用したComposeとShoestringのバージョンは、Node運用ユーザーの
+    ~/symbol-shoestring-versions.txtへ記録します。
+  - Node運用ユーザーはdockerグループへ追加されます。dockerグループは
+    ホスト上で非常に強い権限を持つことに注意してください。
+
+5. 統合スクリプトについて
+-------------------------
+
+公開する5つのスクリプトは同一内容です。実行時の
+ファイル名によって、インストール、build、backup、snapshotの処理を
+切り替えます。restore-symbol-shoestring.shの場合は復元処理になります。

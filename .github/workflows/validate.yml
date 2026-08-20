@@ -1,0 +1,26 @@
+name: validate scripts
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Bash syntax
+        run: |
+          for script in *.sh; do
+            bash -n "$script"
+          done
+      - name: Check generated scripts are identical
+        run: |
+          for script in build-symbol-shoestring-node.sh backup-symbol-shoestring.sh restore-symbol-shoestring.sh sync-symbol-shoestring-snapshot.sh; do
+            cmp -s symbol-shoestring-installer.sh "$script"
+          done
+      - name: Check release checksums
+        run: sha256sum -c SHA256SUMS

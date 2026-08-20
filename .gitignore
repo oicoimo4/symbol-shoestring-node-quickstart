@@ -1,0 +1,7 @@
+*.tar.gz
+*.tar.gz.enc
+*.tar.gz.enc.sha256
+*.contents.txt
+.symbol-snapshot.*
+__pycache__/
+.DS_Store

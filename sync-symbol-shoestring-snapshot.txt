@@ -1,0 +1,65 @@
+sync-symbol-shoestring-snapshot.sh 説明書
+=================================================
+
+1. 目的
+-------
+mainnet Peer Nodeのdataを公式週次スナップショットで置き換え、
+Genesisからの同期時間を短縮するためのスクリプトです。
+
+mainnetのbuild時に自動生成されますが、自動実行はされません。
+
+2. 実行方法
+-----------
+
+  ./sync-symbol-shoestring-snapshot.sh --node-dir ~/symbolNode
+
+通常は--node-dirを省略できます。
+
+  ./sync-symbol-shoestring-snapshot.sh
+
+3. 公式スナップショット
+---------------------------
+
+  https://catapultmainnetdata.s3.us-west-2.amazonaws.com/weekly/catapult_peer_data.tar.gz
+
+4. 実行条件
+-----------
+
+  - shoestring.iniの[network] nameがmainnetであること
+  - docker-compose.yamlが存在すること
+  - Nodeが完全に停止していること
+  - rootではなくNode運用ユーザーで実行すること
+  - ダウンロードしたtar.gzと展開後のdataに十分な空き容量があること
+  - 構築先にdataディレクトリが存在すること
+
+testnetやネットワーク不明のNodeでは実行を拒否します。
+
+5. 処理内容
+-----------
+
+  1) mainnet、Node停止状態、既存dataの存在を確認
+  2) mainnet-snapshotという確認文字列の入力
+  3) スナップショットを一時領域へダウンロード
+  4) tar.gz内にdataがあることを確認
+  5) 既存のharvesters.datがあれば一時保持
+  6) 既存のdataを削除
+  7) スナップショットのdataをNodeディレクトリへ直接展開
+  8) harvesters.datがあった場合は復元
+
+harvesters.datが存在しない場合は、復元なしで正常に続行します。
+
+6. 重要な注意
+-------------
+
+  - tar.gz内のdata確認とharvesters.datの退避後に既存dataを削除します。
+  - 一時展開用のdataコピーは作成しません。
+  - 置き換え時に既存のdataは削除され、退避コピーは作られません。
+  - Peer用snapshotにはdbdataがないため、dbdataは処理対象にしません。
+  - 公式URLからHTTPSでスナップショットを取得します。
+  - 前回の中断ファイルがある場合は、同じURLの途中から再開できます。
+  - ダウンロード中に中断した場合、一時ファイルは次回実行のため保持されます。
+  - 展開に失敗した場合もtar.gzとharvesters.datの退避ファイルを保持します。
+  - 既存dataの削除後に展開が失敗すると、Node側のdataは不完全になります。
+    保持されたtar.gzから再度同期してください。
+  - snapshot提供元によるチェックサムまたは署名の検証は行っていません。
+  - スクリプトはNodeを自動起動しません。完了後に手動で起動してください。

@@ -1,0 +1,57 @@
+backup-symbol-shoestring.sh 説明書
+========================================
+
+1. 目的
+-------
+Shoestring Nodeの設定、鍵、harvesters.datなどを暗号化して保存します。
+Node運用ユーザーで実行します。
+
+2. 実行方法
+-----------
+
+  ./backup-symbol-shoestring.sh
+
+明示的にパスを指定する場合:
+
+  ./backup-symbol-shoestring.sh \
+    --node-dir ~/symbolNode \
+    --output-dir ~/symbol-backups
+
+3. 実行条件
+-----------
+
+  - Nodeを完全に停止してください。
+  - Docker Composeで稼働コンテナが見つかると中止します。
+  - harvesters.datがまだ存在しない場合は警告のみで続行します。
+
+4. 主なバックアップ対象
+-------------------------
+
+  - docker-compose.yaml
+  - docker-compose-recovery.yaml
+  - shoestring/
+  - userconfig/
+  - keys/
+  - data/harvesters.dat（存在する場合）
+  - ca.key.pem（存在する場合）
+
+ブロックチェーン本体のdataやdbdata全体を保存するものではありません。
+
+5. 出力ファイル
+-----------------
+
+  symbol-shoestring-NETWORK-TIMESTAMP.tar.gz.enc
+  symbol-shoestring-NETWORK-TIMESTAMP.tar.gz.enc.sha256
+  symbol-shoestring-NETWORK-TIMESTAMP.contents.txt
+
+アーカイブはAES-256-CBCとPBKDF2で暗号化します。暗号化パスワードを
+紛失すると復元できません。
+SHA-256ファイルは転送時の破損確認用です。バックアップとSHA-256を
+同時に変更できる第三者に対する改ざん証明にはなりません。
+
+6. 注意
+-------
+
+  - バックアップとパスワードは別々の安全な場所で保管してください。
+  - 生成後のSHA-256ファイルも一緒に保管してください。
+  - 復元時は自動生成されるrestore-symbol-shoestring.shを使用します。
