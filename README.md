@@ -3,6 +3,31 @@
 Debian／Ubuntu系環境でSymbol Shoestring Nodeを準備、構築、保守するための
 対話式シェルスクリプト群です。Nodeは構築後も自動起動しません。
 
+## クイックスタート
+
+Debian／Ubuntu系環境でinstallerをダウンロードします。
+
+```bash
+wget -O symbol-shoestring-installer.sh \
+  https://raw.githubusercontent.com/oicoimo4/symbol-shoestring-node-quickstart/main/symbol-shoestring-installer.sh
+```
+
+ダウンロードした内容を確認してから、Bashで起動します。
+
+```bash
+less symbol-shoestring-installer.sh
+bash symbol-shoestring-installer.sh
+```
+
+`less`は`q`キーで終了できます。installerは必要に応じてsudoで再実行され、
+Node運用ユーザー、Docker、Docker Compose、Python環境を準備します。
+`wget`がない場合は先に次を実行してください。
+
+```bash
+sudo apt-get update
+sudo apt-get install -y wget
+```
+
 ## スクリプトの関係
 
 ```text
