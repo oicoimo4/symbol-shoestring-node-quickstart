@@ -1,26 +1,41 @@
-# Symbol Shoestring Node scripts
+# Symbol Shoestring Node Quickstart
 
-Debian／Ubuntu系環境でSymbol Shoestring Nodeを準備、構築、保守するための
-対話式シェルスクリプト群です。Nodeは構築後も自動起動しません。
+Symbol Shoestring Nodeをゼロから始めるための対話式Bashツールキットです。
+Debian／Ubuntu系環境へのインストールからNode構築、バックアップ、復元、
+mainnet snapshot同期までを一連の操作でサポートします。
+
+複雑な設定項目は対話形式で選択でき、Peer、Full API、Light API、
+Harvester、Voter、API HTTPSなど、用途に応じたNodeを構築できます。
+
+> [!NOTE]
+> 構築後のNodeは自動起動しません。生成された設定を確認してから、
+> 手動でDocker Composeを起動する設計です。
 
 ## クイックスタート
 
 Debian／Ubuntu系環境でinstallerをダウンロードします。
 
 ```bash
-wget -O symbol-shoestring-installer.sh \
-  https://raw.githubusercontent.com/oicoimo4/symbol-shoestring-node-quickstart/main/symbol-shoestring-installer.sh
+wget https://raw.githubusercontent.com/oicoimo4/symbol-shoestring-node-quickstart/main/symbol-shoestring-installer.sh
 ```
 
-ダウンロードした内容を確認してから、Bashで起動します。
+ダウンロード後、Bashで起動します。
 
 ```bash
-less symbol-shoestring-installer.sh
 bash symbol-shoestring-installer.sh
 ```
 
-`less`は`q`キーで終了できます。installerは必要に応じてsudoで再実行され、
-Node運用ユーザー、Docker、Docker Compose、Python環境を準備します。
+installerは必要に応じてsudoで再実行され、Node運用ユーザー、Docker、
+Docker Compose、Python環境を準備します。
+
+> [!TIP]
+> 実行前にスクリプトの内容を確認する場合は、次を実行します。
+> `less`は`q`キーで終了できます。
+>
+> ```bash
+> less symbol-shoestring-installer.sh
+> ```
+
 `wget`がない場合は先に次を実行してください。
 
 ```bash
@@ -35,7 +50,7 @@ symbol-shoestring-installer.sh
 └─ build-symbol-shoestring-node.sh
    ├─ backup-symbol-shoestring.sh
    ├─ restore-symbol-shoestring.sh
-   └─ sync-symbol-shoestring-snapshot.sh（mainnetのみ）
+   └─ sync-symbol-shoestring-snapshot.sh（mainnet Peerのみ）
 ```
 
 5つのシェルスクリプトは同一内容で、実行時のファイル名によって処理を
@@ -63,9 +78,13 @@ symbol-shoestring-installer.sh
 - Dockerを実行できる環境
 - systemd、またはDockerを起動できる`service`コマンド
 
-Android上のTerminal環境では、Dockerデーモン、共有ストレージ、空き容量
-などに環境固有の制約があります。すべてのTerminalアプリでの動作を保証する
-ものではありません。
+VPSなどの一般的なDebian／Ubuntu環境に加え、2026年8月21日時点で、
+Android 17 Beta 3のTerminal環境でも動作を確認しています。
+
+ただし、Android上のTerminal環境は、OSやTerminalアプリの実装によって、
+Dockerデーモン、共有ストレージ、利用可能なメモリ・空き容量などの条件が
+異なります。そのため、すべてのAndroid端末やTerminalアプリでの動作を
+保証するものではありません。
 
 ## 重要な注意
 
@@ -76,11 +95,10 @@ Android上のTerminal環境では、Dockerデーモン、共有ストレージ�
   強い権限を持ちます。
 - Dockerが未導入の場合、installerはDocker公式の`get.docker.com`から
   インストールスクリプトを取得し、root権限で実行します。この処理は
-  Dockerのバージョン固定や7日間の待機判定を行いません。
-- Full APIとLight APIのどちらでもHTTPSを選択できます。HTTPSにはNodeを
-  向いた公開ドメインと事前のDNS設定が必要です。
-- HTTPでREST APIを外部公開する場合は、HTTPSとアクセス制御を別途用意して
-  ください。
+  Dockerのバージョン固定や7日間の待機判定を行いません。この方法に懸念が
+  ある場合は、installerの実行前にDockerをインストールしてください。
+- Full API／Light APIでは、HTTPまたはHTTPSを選択できます。HTTPSを利用する
+  場合は、Nodeに向けた公開ドメインとDNS設定が必要です。
 - mainnet snapshotは大容量です。tar.gzと展開後のdataを保持できる空き容量が
   必要です。
 - snapshotは既存dataを削除してから新しいdataを直接展開します。展開中の
