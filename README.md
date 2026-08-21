@@ -99,8 +99,10 @@ Dockerデーモン、共有ストレージ、利用可能なメモリ・空き�
   ある場合は、installerの実行前にDockerをインストールしてください。
 - Full API／Light APIでは、HTTPまたはHTTPSを選択できます。HTTPSを利用する
   場合は、Nodeに向けた公開ドメインとDNS設定が必要です。
-- mainnet snapshotは大容量です。tar.gzと展開後のdataを保持できる空き容量が
-  必要です。
+- 2026年8月21日時点で、mainnet Peer snapshotのtar.gzは約91GB以上あります。
+  ダウンロードしたtar.gzと展開後のdataを同時に保持するため、Node用として
+  256GB以上のストレージを推奨します。snapshot容量は今後増える可能性が
+  あるため、実行前に十分な空き容量を確認してください。
 - snapshotは既存dataを削除してから新しいdataを直接展開します。展開中の
   容量不足、強制終了、アーカイブ異常などが発生すると、Node側のdataが
   不完全になる可能性があります。ダウンロード済みtar.gzと退避した
