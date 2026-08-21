@@ -103,6 +103,8 @@ Dockerデーモン、共有ストレージ、利用可能なメモリ・空き�
   ダウンロードしたtar.gzと展開後のdataを同時に保持するため、Node用として
   256GB以上のストレージを推奨します。snapshot容量は今後増える可能性が
   あるため、実行前に十分な空き容量を確認してください。
+  取得元は[Symbol公式mainnet Peer snapshot](https://catapultmainnetdata.s3.us-west-2.amazonaws.com/weekly/catapult_peer_data.tar.gz)です。
+  リンク先は大容量のtar.gzファイルなので注意してください。
 - snapshotは既存dataを削除してから新しいdataを直接展開します。展開中の
   容量不足、強制終了、アーカイブ異常などが発生すると、Node側のdataが
   不完全になる可能性があります。ダウンロード済みtar.gzと退避した
