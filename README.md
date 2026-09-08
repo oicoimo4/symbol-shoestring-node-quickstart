@@ -47,15 +47,19 @@ sudo apt-get install -y wget
 
 ```text
 symbol-shoestring-installer.sh
-└─ build-symbol-shoestring-node.sh
-   ├─ backup-symbol-shoestring.sh
-   ├─ restore-symbol-shoestring.sh
-   └─ sync-symbol-shoestring-snapshot.sh（mainnet Peerのみ）
+├─ build-symbol-shoestring-node.sh
+├─ backup-symbol-shoestring.sh
+├─ restore-symbol-shoestring.sh
+└─ sync-symbol-shoestring-snapshot.sh（実行対象はmainnet Peerのみ）
 ```
 
 5つのシェルスクリプトは同一内容で、実行時のファイル名によって処理を
 切り替えます。installerが生成する内容をGitHub上でも確認できるよう、
 各ファイル名で掲載しています。
+
+installerはNode運用ユーザーを決定した直後に、4つの管理用スクリプトを
+ホームディレクトリへ生成します。snapshotスクリプトも常に生成されますが、
+実行時に構成を検査し、mainnet Peer以外では処理を開始せず終了します。
 
 ## 主な役割
 

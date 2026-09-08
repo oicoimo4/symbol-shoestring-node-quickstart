@@ -98,10 +98,10 @@ HTTPSを無効にしてREST APIをインターネットへ公開する場合は�
 
   ~/backup-symbol-shoestring.sh
   ~/restore-symbol-shoestring.sh
-
-mainnetを選んだ場合のみ、次も生成します。
-
   ~/sync-symbol-shoestring-snapshot.sh
+
+snapshotスクリプトは常に生成されますが、実行時に構成を確認し、
+mainnet Peer以外では処理を開始せず終了します。
 
 7. 構築後
 -------

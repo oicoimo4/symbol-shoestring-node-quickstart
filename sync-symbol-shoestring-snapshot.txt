@@ -6,7 +6,7 @@ sync-symbol-shoestring-snapshot.sh 説明書
 mainnet Peer Nodeのdataを公式週次スナップショットで置き換え、
 Genesisからの同期時間を短縮するためのスクリプトです。
 
-mainnetのbuild時に自動生成されますが、自動実行はされません。
+installerの早い段階で自動生成されますが、自動実行はされません。
 
 2. 実行方法
 -----------
@@ -26,13 +26,14 @@ mainnetのbuild時に自動生成されますが、自動実行はされませ�
 -----------
 
   - shoestring.iniの[network] nameがmainnetであること
+  - shoestring.iniの[node] featuresにPEERが含まれること
   - docker-compose.yamlが存在すること
   - Nodeが完全に停止していること
   - rootではなくNode運用ユーザーで実行すること
   - ダウンロードしたtar.gzと展開後のdataに十分な空き容量があること
   - 構築先にdataディレクトリが存在すること
 
-testnetやネットワーク不明のNodeでは実行を拒否します。
+testnet、ネットワーク不明、PEER featureがないNodeでは実行を拒否します。
 
 5. 処理内容
 -----------

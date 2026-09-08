@@ -8,6 +8,7 @@ Symbol Shoestring Nodeの構築に必要な基本環境を準備するインス�
 主に次の処理を行います。
 
   - Node運用ユーザーの選択または作成
+  - Node運用ユーザーのホームへ4つの管理用スクリプトを生成
   - Dockerのインストール
   - Docker Composeの確認またはインストール
   - Python仮想環境 ~/env の準備
@@ -25,15 +26,19 @@ Symbol Shoestring Nodeの構築に必要な基本環境を準備するインス�
 3. インストール後の選択
 -------------------------
 
-  1) Node構築スクリプトを生成して起動
+  1) Node構築スクリプトを起動
   2) Shoestring Wizardで手動構築
   3) Nodeを構築せず終了
 
-1を選ぶと、Node運用ユーザーのホームに次を生成します。
+Node運用ユーザーを決定した直後に、ホームへ次を生成します。
 
   ~/build-symbol-shoestring-node.sh
+  ~/backup-symbol-shoestring.sh
+  ~/restore-symbol-shoestring.sh
+  ~/sync-symbol-shoestring-snapshot.sh
 
-その後、このbuildスクリプトをNode運用ユーザーとして実行します。
+snapshotスクリプトも常に生成しますが、実行できるのはmainnet Peerだけです。
+1を選ぶと、buildスクリプトをNode運用ユーザーとして実行します。
 build時には、beneficiaryAddressを指定するかどうかを選択できます。
 この選択とアドレス入力の処理は、自動生成されたbuildスクリプトにも
 含まれます。

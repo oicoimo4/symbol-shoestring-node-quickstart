@@ -22,6 +22,7 @@ CA_KEY_PATH=""
 NODE_KEY_PATH=""
 HARVESTER_IMPORT_PATH=""
 ACCOUNT_SETUP_MODE="auto"
+GENERATED_BUILD_PATH=""
 GENERATED_BACKUP_PATH=""
 GENERATED_RESTORE_PATH=""
 GENERATED_SNAPSHOT_PATH=""
@@ -993,6 +994,17 @@ create_role_copy() {
   printf '%s\n' "$generated_path"
 }
 
+generate_management_scripts() {
+  GENERATED_BUILD_PATH="$(create_role_copy "${TARGET_HOME}/build-symbol-shoestring-node.sh")"
+  GENERATED_BACKUP_PATH="$(create_role_copy "${TARGET_HOME}/backup-symbol-shoestring.sh")"
+  GENERATED_RESTORE_PATH="$(create_role_copy "${TARGET_HOME}/restore-symbol-shoestring.sh")"
+  GENERATED_SNAPSHOT_PATH="$(create_role_copy "${TARGET_HOME}/sync-symbol-shoestring-snapshot.sh")"
+
+  info "管理用スクリプトを生成しました:"
+  printf '  %s\n' "$GENERATED_BUILD_PATH" "$GENERATED_BACKUP_PATH" \
+    "$GENERATED_RESTORE_PATH" "$GENERATED_SNAPSHOT_PATH"
+}
+
 show_manual_build_guide() {
   cat <<EOF
 
@@ -1016,7 +1028,7 @@ choose_build_method() {
 
 Nodeの構築方法を選択してください。
 
-  1) Node構築スクリプトを生成して起動する
+  1) Node構築スクリプトを起動する
   2) Shoestring Wizardで手動構築する
   3) 今は構築せず終了する
 EOF
@@ -1025,7 +1037,7 @@ EOF
 
     case "$choice" in
       1)
-        build_script="$(create_role_copy "${TARGET_HOME}/build-symbol-shoestring-node.sh")"
+        build_script="$GENERATED_BUILD_PATH"
         info "Node構築スクリプトを起動します: $build_script"
         run_as_target bash "$build_script" --build-node
         return
@@ -1059,6 +1071,7 @@ EOF
 
   confirm "この内容でセットアップを開始しますか？" Y || exit 0
   select_user
+  generate_management_scripts
   install_docker
   install_shoestring_dependencies
   install_docker_compose
@@ -1080,10 +1093,7 @@ build_main() {
     || die "symbol-shoestringを確認できません。先にインストールスクリプトを完了してください。"
 
   mkdir -p "$NODE_DIR"
-  GENERATED_BACKUP_PATH="$(create_role_copy "${TARGET_HOME}/backup-symbol-shoestring.sh")"
-  info "バックアップスクリプトを生成しました: $GENERATED_BACKUP_PATH"
-  GENERATED_RESTORE_PATH="$(create_role_copy "${TARGET_HOME}/restore-symbol-shoestring.sh")"
-  info "復元スクリプトを生成しました: $GENERATED_RESTORE_PATH"
+  generate_management_scripts
 
   select_network
   select_node_features
@@ -1092,10 +1102,6 @@ build_main() {
     select_beneficiary_address
   else
     BENEFICIARY_ADDRESS=""
-  fi
-  if [[ "$NETWORK_NAME" == "mainnet" ]]; then
-    GENERATED_SNAPSHOT_PATH="$(create_role_copy "${TARGET_HOME}/sync-symbol-shoestring-snapshot.sh")"
-    info "mainnet Peer用スナップショット同期スクリプトを生成しました: $GENERATED_SNAPSHOT_PATH"
   fi
   read_node_identity
   select_api_https
@@ -1130,7 +1136,7 @@ EOF
 snapshot_main() {
   local node_dir="${HOME}/symbolNode"
   local snapshot_url="https://catapultmainnetdata.s3.us-west-2.amazonaws.com/weekly/catapult_peer_data.tar.gz"
-  local config_file network_name running confirmation archive_path snapshot_data_path strip_components
+  local config_file config_state network_name node_features running confirmation archive_path snapshot_data_path strip_components
   local snapshot_parent resume_dir candidate candidate_url
   local harvesters_backup
   local compose=()
@@ -1152,14 +1158,19 @@ snapshot_main() {
   [[ -d "${node_dir}/data" ]] || die "dataディレクトリが見つかりません: ${node_dir}/data"
   config_file="${node_dir}/shoestring/shoestring.ini"
   [[ -f "$config_file" ]] || die "shoestring.iniが見つかりません: $config_file"
-  network_name="$(python3 - "$config_file" <<'PY'
+  config_state="$(python3 - "$config_file" <<'PY'
 import configparser, sys
 c = configparser.ConfigParser()
 c.read(sys.argv[1], encoding='utf-8')
-print(c.get('network', 'name', fallback='').strip().lower())
+network = c.get('network', 'name', fallback='').strip().lower()
+features = c.get('node', 'features', fallback='').strip().upper().replace(' ', '')
+print(f'{network}\t{features}')
 PY
 )" || die "ネットワーク設定を読み取れません。"
+  network_name="${config_state%%$'\t'*}"
+  node_features="${config_state#*$'\t'}"
   [[ "$network_name" == "mainnet" ]] || die "mainnet Peer以外では実行できません。"
+  [[ "|${node_features}|" == *"|PEER|"* ]] || die "mainnet Peer以外では実行できません。"
 
   if command -v docker-compose >/dev/null 2>&1; then compose=(docker-compose)
   elif docker compose version >/dev/null 2>&1; then compose=(docker compose)
@@ -1419,6 +1430,62 @@ Options:
 EOF
 }
 
+prepare_compose_bind_directories() {
+  local node_dir="$1"
+  local compose_file="${node_dir}/docker-compose.yaml"
+  local bind_dir
+  local -a bind_dirs=()
+
+  mapfile -t bind_dirs < <(python3 - "$compose_file" "$node_dir" <<'PY'
+import pathlib
+import re
+import sys
+
+compose_path = pathlib.Path(sys.argv[1])
+node_dir = pathlib.Path(sys.argv[2]).resolve()
+
+short_syntax = re.compile(r'^\s*-\s+([^:]+)\s*:\s*/')
+long_syntax = re.compile(r'^\s*source\s*:\s*(\S+)')
+directories = set()
+
+for line in compose_path.read_text(encoding='utf-8').splitlines():
+    match = short_syntax.match(line) or long_syntax.match(line)
+    if not match:
+        continue
+
+    source = match.group(1).strip().strip(chr(34) + chr(39))
+    if '$' in source or source.startswith('~'):
+        continue
+
+    source_path = pathlib.Path(source)
+    if not source_path.is_absolute() and not source.startswith(('./', '../')):
+        continue
+    candidate = source_path.resolve() if source_path.is_absolute() else (node_dir / source_path).resolve()
+    try:
+        candidate.relative_to(node_dir)
+    except ValueError:
+        continue
+    directories.add(candidate)
+
+for directory in sorted(directories):
+    print(directory)
+PY
+  )
+
+  for bind_dir in "${bind_dirs[@]}"; do
+    [[ ! -f "$bind_dir" ]] || continue
+    if [[ -e "$bind_dir" && ! -d "$bind_dir" ]]; then
+      die "Composeのマウント元がディレクトリではありません: $bind_dir"
+    fi
+    mkdir -p "$bind_dir"
+    [[ -w "$bind_dir" ]] \
+      || die "Composeのマウント元へ書き込めません。所有者と権限を確認してください: $bind_dir"
+  done
+
+  ((${#bind_dirs[@]} == 0)) \
+    || info "Compose構成に必要なディレクトリを確認・作成しました。"
+}
+
 restore_main() {
   local encrypted_file=""
   local target_root="${HOME}/symbolNode"
@@ -1427,8 +1494,7 @@ restore_main() {
   local actual_checksum
   local network_name
   local node_dir
-  local config_dir
-  local ca_key_path
+  local overwrite_existing="false"
 
   while (($#)); do
     case "$1" in
@@ -1452,6 +1518,8 @@ restore_main() {
 
   [[ $EUID -ne 0 ]] \
     || die "復元スクリプトはrootではなくNode運用ユーザーで実行してください。"
+  TARGET_USER="$(id -un)"
+  TARGET_HOME="$HOME"
   [[ -n "$encrypted_file" ]] || die "--backupで暗号化バックアップを指定してください。"
   encrypted_file="$(readlink -f "$encrypted_file")"
   [[ -f "$encrypted_file" ]] || die "バックアップファイルが見つかりません: $encrypted_file"
@@ -1525,20 +1593,14 @@ PY
   target_root="$(realpath -m "$target_root")"
   if [[ "$network_name" == "node" ]]; then
     node_dir="$target_root"
-    config_dir="${target_root}/shoestring"
-    ca_key_path="${target_root}/ca.key.pem"
   else
     node_dir="${target_root}/${network_name}"
-    config_dir="${target_root}/config/${network_name}"
-    ca_key_path="${target_root}/keys/${network_name}-ca.key.pem"
   fi
 
-  [[ ! -e "$node_dir" ]] \
-    || die "復元先のNodeディレクトリが既に存在します。停止・退避してから再実行してください: $node_dir"
-  [[ ! -e "$config_dir" ]] \
-    || die "復元先の設定ディレクトリが既に存在します。自動上書きしません: $config_dir"
-  [[ ! -e "$ca_key_path" ]] \
-    || die "復元先にCA鍵が既に存在します。自動上書きしません: $ca_key_path"
+  if [[ -e "$target_root" ]]; then
+    warn "復元先に既存のNode構成があります: $target_root"
+    overwrite_existing="true"
+  fi
 
   cat <<EOF
 
@@ -1549,14 +1611,21 @@ PY
 復元先:       ${target_root}
 --------------------------------
 
-既存ファイルは上書きしません。復元後もNodeは自動起動しません。
+既存ファイル:   $([[ "$overwrite_existing" == "true" ]] && printf '同名ファイルを上書き' || printf 'なし')
+復元後もNodeは自動起動しません。
 EOF
-  confirm "このバックアップを復元しますか？" N || exit 0
+  if [[ "$overwrite_existing" == "true" ]]; then
+    confirm "バックアップ内の同名ファイルを上書きして復元を続けますか？" N || exit 0
+  else
+    confirm "このバックアップを復元しますか？" N || exit 0
+  fi
 
   mkdir -p "$target_root"
-  tar --no-same-owner --keep-old-files -xzf "$RESTORE_TEMP_ARCHIVE" -C "$target_root"
+  tar --no-same-owner --overwrite -xzf "$RESTORE_TEMP_ARCHIVE" -C "$target_root"
   [[ -f "${node_dir}/docker-compose.yaml" ]] \
     || die "復元後にdocker-compose.yamlを確認できません: $node_dir"
+  prepare_compose_bind_directories "$node_dir"
+  generate_management_scripts
 
   restore_cleanup
   RESTORE_TEMP_ARCHIVE=""
