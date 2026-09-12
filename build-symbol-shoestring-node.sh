@@ -1346,6 +1346,11 @@ backup_main() {
   [[ -z "$running" ]] \
     || die "Nodeが動作中です。正常停止してください: cd '$backup_node_dir' && ${compose[*]} down"
 
+  [[ -d "${backup_node_dir}/seed/00000" ]] \
+    || die "通常同期に必要なseed/00000が見つかりません: ${backup_node_dir}/seed/00000"
+  find "${backup_node_dir}/seed/00000" -mindepth 1 -print -quit | grep -q . \
+    || die "通常同期に必要なseed/00000が空です: ${backup_node_dir}/seed/00000"
+
   backup_add() {
     local path="$1"
     [[ -e "$path" ]] || return
@@ -1361,6 +1366,7 @@ backup_main() {
   backup_add "${backup_node_dir}/shoestring"
   backup_add "${backup_node_dir}/userconfig"
   backup_add "${backup_node_dir}/keys"
+  backup_add "${backup_node_dir}/seed/00000"
   backup_add "${backup_node_dir}/data/harvesters.dat"
   if [[ "$network_name" != "node" ]]; then
     backup_add "${symbol_root}/config/${network_name}"
@@ -1465,6 +1471,8 @@ for line in compose_path.read_text(encoding='utf-8').splitlines():
         candidate.relative_to(node_dir)
     except ValueError:
         continue
+    if candidate == node_dir / 'seed':
+        continue
     directories.add(candidate)
 
 for directory in sorted(directories):
@@ -1567,6 +1575,7 @@ import tarfile
 
 archive_path = sys.argv[1]
 networks = []
+archive_files = []
 
 try:
     with tarfile.open(archive_path, mode='r:gz') as archive:
@@ -1586,6 +1595,8 @@ try:
             normalized = path.as_posix()
             if normalized.startswith('./'):
                 normalized = normalized[2:]
+            if member.isfile():
+                archive_files.append(normalized)
             if normalized == 'testnet/docker-compose.yaml':
                 networks.append('testnet')
             elif normalized == 'mainnet/docker-compose.yaml':
@@ -1600,7 +1611,12 @@ networks = sorted(set(networks))
 if len(networks) != 1:
     print('Node構成を一意に判定できません。', file=sys.stderr)
     raise SystemExit(1)
-print(networks[0])
+network = networks[0]
+seed_prefix = 'seed/00000/' if network == 'node' else f'{network}/seed/00000/'
+if not any(filename.startswith(seed_prefix) for filename in archive_files):
+    print('バックアップに通常同期用のseed/00000実データが含まれていません。', file=sys.stderr)
+    raise SystemExit(1)
+print(network)
 PY
 )" || die "バックアップの内容を安全に検査できませんでした。"
 
@@ -1638,6 +1654,10 @@ EOF
   tar --no-same-owner --overwrite -xzf "$RESTORE_TEMP_ARCHIVE" -C "$target_root"
   [[ -f "${node_dir}/docker-compose.yaml" ]] \
     || die "復元後にdocker-compose.yamlを確認できません: $node_dir"
+  [[ -d "${node_dir}/seed/00000" ]] \
+    || die "バックアップに通常同期用のseed/00000が含まれていません。seed対応後に作成したバックアップが必要です。"
+  find "${node_dir}/seed/00000" -mindepth 1 -print -quit | grep -q . \
+    || die "復元したseed/00000が空です: ${node_dir}/seed/00000"
   prepare_compose_bind_directories "$node_dir"
   generate_management_scripts
 
