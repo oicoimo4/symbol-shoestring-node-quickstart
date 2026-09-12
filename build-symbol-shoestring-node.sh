@@ -1495,6 +1495,7 @@ restore_main() {
   local network_name
   local node_dir
   local overwrite_existing="false"
+  local decryption_password=""
 
   while (($#)); do
     case "$1" in
@@ -1542,9 +1543,22 @@ restore_main() {
   RESTORE_TEMP_ARCHIVE="$(mktemp --tmpdir symbol-shoestring-restore.XXXXXX.tar.gz)"
   trap restore_cleanup EXIT INT TERM
 
-  info "バックアップの暗号化パスワードを入力してください。"
-  openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 \
-    -in "$encrypted_file" -out "$RESTORE_TEMP_ARCHIVE"
+  while true; do
+    read -r -s -p "バックアップの暗号化パスワード: " decryption_password
+    printf '\n'
+    if printf '%s\n' "$decryption_password" \
+      | openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -pass stdin \
+        -in "$encrypted_file" -out "$RESTORE_TEMP_ARCHIVE" 2>/dev/null; then
+      decryption_password=""
+      break
+    fi
+    decryption_password=""
+    warn "復号できませんでした。パスワードが正しいか確認してください。"
+    if ! confirm "暗号化パスワードを再入力しますか？" Y; then
+      info "復元をキャンセルしました。"
+      exit 0
+    fi
+  done
 
   network_name="$(python3 - "$RESTORE_TEMP_ARCHIVE" <<'PY'
 import pathlib
